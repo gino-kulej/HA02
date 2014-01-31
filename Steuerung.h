@@ -24,7 +24,8 @@ SC_MODULE(Steuerung){
 	// sc_out<int>	ein_aussteigen1;
 	// [0][..] = down haltestellen [1][..] = up haltestellen
 	bool foo[2][4];
-	sc_event a; //b;
+	sc_event a;
+	bool doorOpen;
 
 	
 	SC_CTOR(Steuerung){
@@ -33,12 +34,12 @@ SC_MODULE(Steuerung){
 				foo[x][y] = false;
 			}
 		}
+		doorOpen = false;
 
 		SC_THREAD(aktiv);
 		sensitive << tasten_und_ziel_wahl[0].value_changed() << tasten_und_ziel_wahl[1].value_changed() << tasten_und_ziel_wahl[2].value_changed(); //<< b;
 		SC_THREAD(fahrstuhlPruefen);
 		sensitive << fahrstuhl_etage.value_changed() << a;
-		dont_initialize();
 	}
 	
 	
@@ -114,6 +115,7 @@ SC_MODULE(Steuerung){
 			wait();
 			int faEtage = fahrstuhl_etage.read();
 			int faModus = fahrstuhl_modus.read();
+			cout << "[" << sc_time_stamp() << "]";
 			if (faEtage % 10 != 0){
 				// fahrstuhl in ZwischenEtage
 				printf("Fahrstuhl befindet sich in Zwischenetage: %d\n", faEtage);
@@ -136,26 +138,37 @@ SC_MODULE(Steuerung){
 					//prüfe nur etage 1
 					open1 = foo[0][0];
 					open2 = foo[1][0];
-					if (open1 || open2) printf("offne tur!\n");
+					if (open1 || open2) openDoor();
 				}
 				if (faModus == 1){
 					open1 = foo[0][((faEtage / 10) - 1)];
 						//printf("%s\n", open? "true" : "false");
 					if (open1){
-						printf("offne tur!\n");
+						openDoor();
 					}
 				}
 				if (faModus == 2){
 					open1 = foo[1][((faEtage / 10) - 1)];
 					//printf("%s\n", open ? "true" : "false");
 					if (open1){
-						printf("offne tur!\n");
+						openDoor();
 					}
 				}
 			}
 			int w = weiter_fahren;
 			weiter_fahren.write(++w);
 		}
+	}
+
+	void openDoor(){
+		doorOpen = true;
+		cout << "[" << sc_time_stamp() << "] ";
+		printf("Oeffne Tuer! \n");
+		// warte dass tür geschlossen werden kann
+		wait(3, SC_SEC);
+		cout << "[" << sc_time_stamp() << "]";
+		printf("Schliesse Tuer! \n");
+		doorOpen = false;
 	}
 
 	//bla

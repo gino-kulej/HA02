@@ -57,14 +57,14 @@ SC_MODULE(Fahrstuhl){
 	void tickUp(){
 		int e = fahrstuhl_etage.read();
 		e += 5;
-		// 1 sek!
+		wait(1, SC_SEC);
 		fahrstuhl_etage.write(e);
 	}
 
 	void tickDown(){
 		int e = fahrstuhl_etage.read();
 		e -= 5;
-		// 1 sek!
+		wait(1, SC_SEC);
 		fahrstuhl_etage.write(e);
 	}
 
