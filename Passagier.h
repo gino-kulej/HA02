@@ -23,8 +23,11 @@ SC_MODULE(Passagier){
 	sc_out<int> tasten_und_ziel_wahl;
 	int start_taste, ziel, rdEinsteigen;
 	sc_in<int> einAussteigen;
+	bool in;
 		
 	SC_CTOR(Passagier){
+		in = false;
+
 		SC_THREAD(aktiv);
 		SC_THREAD(step);
 		sensitive << einAussteigen.value_changed();
@@ -71,16 +74,20 @@ SC_MODULE(Passagier){
 	void step(){
 		while (true){
 			wait();
-			if (einAussteigen.read() == 1){
 				//std::random_device rd;
 				//std::srand(rd());
 				// step in (innerhalb von 1-2 sek)
 				//rdEinsteigen = 2 + std::rand() / RAND_MAX;
 				wait(2,SC_SEC);
-				cout << "[" << sc_time_stamp() << "] " << "step in (" << name()<< ")" << endl;
-
+				if (!in){
+					cout << "[" << sc_time_stamp() << "] " << "step in (" << name() << ")" << endl;
+					in = true;
+				}
+				else {
+					cout << "[" << sc_time_stamp() << "] " << "step out (" << name() << ")" << endl;
+					in = false;
+				}
 				activateSensor.notify();
-			}
 
 		}
 

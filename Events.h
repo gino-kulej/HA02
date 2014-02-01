@@ -11,6 +11,7 @@ sc_event activateSensor,
 		 deactivateSensor,
 		 weiterFahren,
 		 einAussteigen,
-		 doorClosed;
+		 doorClosed,
+		 amEnde;
 
 #endif

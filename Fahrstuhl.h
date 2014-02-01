@@ -25,7 +25,7 @@ SC_MODULE(Fahrstuhl){
 		//SC_THREAD(aktiv);
 		//	sensitive << ein_aussteigen.value_changed();
 		SC_THREAD(fahren);
-		sensitive << fahrstuhl_modus.value_changed() << weiterFahren;//weiter_fahren.value_changed();
+		sensitive << weiterFahren;
 	}
 	
 	//void aktiv(){
@@ -42,14 +42,14 @@ SC_MODULE(Fahrstuhl){
 			if (mode == 1){
 				// down
 				//printf("Modus: down , TICK down!\n");
-				if (e > 10)
-					tickDown();
+				if (e > 10) tickDown();
+				else amEnde.notify();
 			}
 			if (mode == 2){
 				// up
 				//printf("Modus: up, TICK up! \n");
-				if (e < 40)
-					tickUp();
+				if (e < 40) tickUp();
+				else amEnde.notify();
 			}
 			wait();
 		}
