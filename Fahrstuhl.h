@@ -6,6 +6,7 @@
 
 #include "systemc.h"
 #include "Steuerung.h"
+#include "Events.h"
 
 
 #ifndef FAHRSTUHL_H_
@@ -17,14 +18,14 @@ SC_MODULE(Fahrstuhl){
 	sc_inout<int> fahrstuhl_etage;
 	// idle = 0, down = 1, top = 2
 	sc_in<int> fahrstuhl_modus;
-	sc_in<int> weiter_fahren;
+	//sc_in<int> weiter_fahren;
 
 	SC_CTOR(Fahrstuhl){
 		fahrstuhl_etage.initialize(10);
 		//SC_THREAD(aktiv);
 		//	sensitive << ein_aussteigen.value_changed();
 		SC_THREAD(fahren);
-		sensitive << fahrstuhl_modus.value_changed() << weiter_fahren.value_changed();
+		sensitive << fahrstuhl_modus.value_changed() << weiterFahren;//weiter_fahren.value_changed();
 	}
 	
 	//void aktiv(){

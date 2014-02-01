@@ -1,5 +1,6 @@
 #include "systemc.h"
 #include "Etagenwahl.h"
+#include "Events.h"
 
 #ifndef STEUERUNG_H_
 #define STEUERUNG_H_
@@ -19,13 +20,13 @@ SC_MODULE(Steuerung){
 	sc_in<int> fahrstuhl_etage;
 	// idle = 0, down = 1, top = 2
 	sc_inout<int> fahrstuhl_modus;
-	sc_inout<int> weiter_fahren;
-	// sc_inout<int[6]> haltestellen;
-	// sc_out<int>	ein_aussteigen1;
+	//sc_inout<int> weiter_fahren;
+	sc_inout<int> einAussteigen1, einAussteigen2, einAussteigen3;
 	// [0][..] = down haltestellen [1][..] = up haltestellen
 	bool foo[2][4];
-	sc_event a;
+	sc_event a;//activateSensor;
 	bool doorOpen;
+	int passagier_wahl[3], passagier_ziel[3], alt[3], neu[3], dekode, mode, ein;
 
 	
 	SC_CTOR(Steuerung){
@@ -40,12 +41,14 @@ SC_MODULE(Steuerung){
 		sensitive << tasten_und_ziel_wahl[0].value_changed() << tasten_und_ziel_wahl[1].value_changed() << tasten_und_ziel_wahl[2].value_changed(); //<< b;
 		SC_THREAD(fahrstuhlPruefen);
 		sensitive << fahrstuhl_etage.value_changed() << a;
+		SC_THREAD(sensor);
+		sensitive << activateSensor;
+		//dont_initialize();
 	}
 	
 	
 	void aktiv()
 	{
-		int passagier_wahl[3], passagier_ziel[3], alt[3], neu[3], dekode, mode;
 		while (true) {
 			
 			// Warte auf Anfrage
@@ -115,7 +118,7 @@ SC_MODULE(Steuerung){
 			wait();
 			int faEtage = fahrstuhl_etage.read();
 			int faModus = fahrstuhl_modus.read();
-			cout << "[" << sc_time_stamp() << "]";
+			cout << "[" << sc_time_stamp() << "] ";
 			if (faEtage % 10 != 0){
 				// fahrstuhl in ZwischenEtage
 				printf("Fahrstuhl befindet sich in Zwischenetage: %d\n", faEtage);
@@ -155,20 +158,61 @@ SC_MODULE(Steuerung){
 					}
 				}
 			}
-			int w = weiter_fahren;
-			weiter_fahren.write(++w);
+			if (doorOpen){
+				wait(doorClosed);
+			}
+
+			weiterFahren.notify();
+			/*w = weiter_fahren;
+			weiter_fahren.write(++w);*/
 		}
 	}
 
 	void openDoor(){
 		doorOpen = true;
 		cout << "[" << sc_time_stamp() << "] ";
-		printf("Oeffne Tuer! \n");
+		printf("Oeffne Tuer! ");
+		wait(2,SC_SEC);
+		cout << "[" << sc_time_stamp() << "] \n";
 		// warte dass tür geschlossen werden kann
-		wait(3, SC_SEC);
-		cout << "[" << sc_time_stamp() << "]";
-		printf("Schliesse Tuer! \n");
+		activateSensor.notify();
+		//sc_time a = sc_time(2, SC_SEC);
+		wait(deactivateSensor);
+		cout << "[" << sc_time_stamp() << "] ";
+		printf("Schliesse Tuer! ");
+		wait(2,SC_SEC);
+		cout << "[" << sc_time_stamp() << "] \n";
 		doorOpen = false;
+		doorClosed.notify();
+	}
+
+	void sensor(){
+		while (true){
+			wait();
+			if (doorOpen){
+				//welcher Passagier?
+				if ((CalcStock(passagier_wahl[0])) == (fahrstuhl_etage.read() / 10) && einAussteigen1 == 0){
+
+					einAussteigen1.write(1);
+					//cout << "bla \n";
+				}
+				else if ((CalcStock(passagier_wahl[1])) == (fahrstuhl_etage.read() / 10) && einAussteigen2 == 0){
+					einAussteigen2.write(1);
+					//cout << "bla \n";
+				}
+				else if ((CalcStock(passagier_wahl[2])) == (fahrstuhl_etage.read() / 10) && einAussteigen3 == 0){
+					einAussteigen3.write(1);
+					//cout << "bla \n";
+				}
+				else {
+					wait(3, SC_SEC);
+					deactivateSensor.notify();
+				}
+
+
+			}
+		}
+
 	}
 
 	//bla
