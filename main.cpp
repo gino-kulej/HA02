@@ -32,14 +32,17 @@ int sc_main(int argc, char * argv[]) {
 	// connecting modules via signals
 	pass1.tasten_und_ziel_wahl(tasten_wahl[0]);
 	pass1.einAussteigen(einAussteigen1);
+	pass1.fahrstuhlModus(fahrstuhlModus);
 	steuer.tasten_und_ziel_wahl[0](tasten_wahl[0]);
 	steuer.einAussteigen1(einAussteigen1);
 	pass2.tasten_und_ziel_wahl(tasten_wahl[1]);
 	pass2.einAussteigen(einAussteigen2);
+	pass2.fahrstuhlModus(fahrstuhlModus);
 	steuer.tasten_und_ziel_wahl[1](tasten_wahl[1]);
 	steuer.einAussteigen2(einAussteigen2);
 	pass3.tasten_und_ziel_wahl(tasten_wahl[2]);
 	pass3.einAussteigen(einAussteigen3);
+	pass3.fahrstuhlModus(fahrstuhlModus);
 	steuer.tasten_und_ziel_wahl[2](tasten_wahl[2]);
 	steuer.einAussteigen3(einAussteigen3);
 

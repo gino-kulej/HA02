@@ -39,7 +39,7 @@ SC_MODULE(Steuerung){
 		}
 		doorOpen = false;
 		ziel = false;
-		idle = true;
+		idle = false;
 
 		SC_THREAD(aktiv);
 		sensitive << tasten_und_ziel_wahl[0].value_changed() << tasten_und_ziel_wahl[1].value_changed() << tasten_und_ziel_wahl[2].value_changed(); //<< b;
@@ -139,7 +139,7 @@ SC_MODULE(Steuerung){
 			int faModus = fahrstuhl_modus.read();
 			if (idle) {
 				faModus = 0;
-				printf("Fahrstuhl ist im Modus: %d \n", 0);
+				
 				wait(SC_ZERO_TIME);
 			}
 			cout << "[" << sc_time_stamp() << "] ";
@@ -156,16 +156,15 @@ SC_MODULE(Steuerung){
 					mode = calcModus(faEtage);
 					printf("Fahrstuhl ist im Modus: %d \n", mode);
 					fahrstuhl_modus.write(mode);
+					wait(SC_ZERO_TIME);
 					idle = false;
 					//prüfe aktuelle Etage
 					open1 = foo[0][faEtage-1];
 					open2 = foo[1][faEtage-1];
 					
-					if (open1 || open2){
-						foo[1][faEtage - 1] = false;
-						foo[0][faEtage - 1] = false;
-						openDoor();
-					}
+					if (open1 && mode == 1) foo[0][faEtage - 1] = false; 
+					if (open2 && mode == 2) foo[1][faEtage - 1] = false;
+					if (open1 || open2) openDoor();
 				}
 				else{
 					if (faModus == 1){
@@ -217,49 +216,58 @@ SC_MODULE(Steuerung){
 
 
 	void sensor(){
+		int faEtage, faModus;
 		while (true){
 			wait();
+			//printf("Array Up: %s %s %s %s \n", foo[1][0] ? "true" : "false", foo[1][1] ? "true" : "false", foo[1][2] ? "true" : "false", foo[1][3] ? "true" : "false");
+			//printf("Array Down: %s %s %s %s \n", foo[0][0] ? "true" : "false", foo[0][1] ? "true" : "false", foo[0][2] ? "true" : "false", foo[0][3] ? "true" : "false");
 			if (doorOpen){
-				int faEtage = fahrstuhl_etage.read() / 10;
-				if (ziel){
-					if ((passagier_ziel[0] == faEtage) && einAussteigen1 == 1){
-						einAussteigen1.write(0);
-					} 
-					else if ((passagier_ziel[1] == faEtage) && einAussteigen2 == 1){
-						einAussteigen2.write(0);
-					} 
-					else if ((passagier_ziel[2] == faEtage) && einAussteigen3 == 1){
-						einAussteigen3.write(0);
-					}
-					
-					ziel = false;
-					wait(3, SC_SEC);
-					deactivateSensor.notify();
-					
-				}
-				else {
-					//welcher Passagier?
-					if ((CalcStock(passagier_wahl[0])) == faEtage && einAussteigen1 == 0){
+				faEtage = fahrstuhl_etage.read() / 10;
+				faModus = fahrstuhl_modus.read();
+				
+				/*printf("Passagier 1 Stock == faEtage: %s", (CalcStock(passagier_wahl[0]) == faEtage) ? "true" : "false");
+				printf(" && einst1 == 0: %s \n", einAussteigen1 == 0 ? "true" : "false");
 
+				printf("Passagier 2 Stock == faEtage: %s", (CalcStock(passagier_wahl[1]) == faEtage) ? "true" : "false");
+				printf(" && einst2 == 0: %s \n", einAussteigen2 == 0 ? "true" : "false");
+
+				printf("Passagier 3 Stock == faEtage: %s", (CalcStock(passagier_wahl[2]) == faEtage) ? "true" : "false");
+				printf(" && einst3 == 0: %s \n", einAussteigen3 == 0 ? "true" : "false");*/
+				
+				if ((CalcStock(passagier_wahl[0])) == faEtage && einAussteigen1 == 0 && einsteigen(Richtung_Up(passagier_wahl[0]),faModus)){
 						einAussteigen1.write(1);
 						//cout << "bla \n";
-					}
-					else if ((CalcStock(passagier_wahl[1])) == faEtage && einAussteigen2 == 0){
+				}
+				else if ((CalcStock(passagier_wahl[1])) == faEtage && einAussteigen2 == 0 && einsteigen(Richtung_Up(passagier_wahl[1]),faModus)){
 						einAussteigen2.write(1);
 						//cout << "bla \n";
-					}
-					else if ((CalcStock(passagier_wahl[2])) == faEtage && einAussteigen3 == 0){
+				}
+				else if ((CalcStock(passagier_wahl[2])) == faEtage && einAussteigen3 == 0 && einsteigen(Richtung_Up(passagier_wahl[2]),faModus)){
 						einAussteigen3.write(1);
 						//cout << "bla \n";
-					}
-					else {
-						wait(3, SC_SEC);
-						deactivateSensor.notify();
-					}
 				}
+				else if ((passagier_ziel[0] == faEtage) && einAussteigen1 == 1){
+					einAussteigen1.write(0);
+				}
+				else if ((passagier_ziel[1] == faEtage) && einAussteigen2 == 1){
+					einAussteigen2.write(0);
+				}
+				else if ((passagier_ziel[2] == faEtage) && einAussteigen3 == 1){
+					einAussteigen3.write(0);
+				}
+				else {
+					wait(3, SC_SEC);
+					deactivateSensor.notify();
+				}
+				wait(SC_ZERO_TIME);
 			}
 		}
 
+	}
+
+	bool einsteigen(int nachOben, int faModus){
+		if (faModus - 1 == nachOben) return true;
+		else return false;
 	}
 
 

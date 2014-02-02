@@ -20,9 +20,10 @@
 
 SC_MODULE(Passagier){
 	
-	sc_out<int> tasten_und_ziel_wahl;
+	sc_inout<int> tasten_und_ziel_wahl;
 	int start_taste, ziel, rdEinsteigen;
 	sc_in<int> einAussteigen;
+	sc_in<int> fahrstuhlModus;
 	bool in;
 		
 	SC_CTOR(Passagier){
@@ -72,18 +73,28 @@ SC_MODULE(Passagier){
 	}
 
 	void step(){
+		int faModus;
+		int nachOben;
 		while (true){
 			wait();
+			wait(SC_ZERO_TIME);
+				faModus = fahrstuhlModus.read();
+				//printf("Fahrstuhl ist im Modus: %d \n", faModus);
+				nachOben = Richtung_Up(start_taste);
+
+				bool einst = einsteigen(nachOben, faModus);
 				//std::random_device rd;
 				//std::srand(rd());
 				// step in (innerhalb von 1-2 sek)
-				//rdEinsteigen = 2 + std::rand() / RAND_MAX;
+				//rdEinsteigen = 2 + std::rand() / RAND_MAX
 				wait(2,SC_SEC);
-				if (!in){
+				/*printf("in: %s\n", in ? "true" : "false");
+				printf("einst: %s\n", einst ? "true" : "false");*/
+				if (einst && !in){
 					cout << "[" << sc_time_stamp() << "] " << "step in (" << name() << ")" << endl;
 					in = true;
-				}
-				else {
+				} 
+				else if(in){
 					cout << "[" << sc_time_stamp() << "] " << "step out (" << name() << ")" << endl;
 					in = false;
 				}
@@ -91,6 +102,11 @@ SC_MODULE(Passagier){
 
 		}
 
+	}
+
+	bool einsteigen(int nachOben,int faModus){
+		if (faModus - 1 == nachOben ) return true;
+		else return false;
 	}
 	
 	
