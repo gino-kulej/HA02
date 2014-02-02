@@ -26,12 +26,13 @@ SC_MODULE(Passagier){
 	sc_in<int> fahrstuhlModus;
 	sc_in<int> counter;
 	bool in;
+	sc_event neu;
 		
 	SC_CTOR(Passagier){
 		in = false;
 
 		SC_THREAD(aktiv);
-		sensitive << counter.value_changed();
+		sensitive << neu;//counter.value_changed(); 
 		SC_THREAD(step);
 		sensitive << einAussteigen.value_changed();
 	}
@@ -40,7 +41,6 @@ SC_MODULE(Passagier){
 	{
 		int both;
 		while (true) {
-			wait();
 			// Etagenauswahl & Ziel wahl
 			randomStartTaste();
 			// Kodieren in eine Zahl
@@ -48,6 +48,7 @@ SC_MODULE(Passagier){
 			// -> an Steuerung übermitteln
 			//printf("P %d \n",both);
 			tasten_und_ziel_wahl.write(both);						
+			wait();
 		}
 	}
 	
@@ -90,14 +91,16 @@ SC_MODULE(Passagier){
 				wait(2,SC_SEC);
 				/*printf("in: %s\n", in ? "true" : "false");
 				printf("einst: %s\n", einst ? "true" : "false");*/
-				if (einst && !in){
+				/*if (einAussteigen == -1 && !){
+				}
+				else*/ if (einst && !in){
 					cout << "[" << sc_time_stamp() << "] " << "step in (" << name() << ")" << endl;
 					in = true;
 				} 
 				else if(in){
 					cout << "[" << sc_time_stamp() << "] " << "step out (" << name() << ")" << endl;
 					in = false;
-					
+					neu.notify(60, SC_SEC);
 				}
 				activateSensor.notify();
 

@@ -95,7 +95,8 @@ SC_MODULE(Steuerung){
 		while (true){
 			wait();
 			annehmen(0);
-			wait1.notify(150, SC_SEC);
+			//einAussteigen1.write(0);
+			//wait1.notify(150, SC_SEC);
 		}
 	}
 	
@@ -103,7 +104,8 @@ SC_MODULE(Steuerung){
 		while (true){
 			wait();
 			annehmen(1);
-			wait2.notify(150, SC_SEC);
+			//einAussteigen2.write(0);
+			//wait2.notify(150, SC_SEC);
 		}
 	} 
 
@@ -111,7 +113,8 @@ SC_MODULE(Steuerung){
 		while (true){
 			wait();
 			annehmen(2);
-			wait3.notify(150, SC_SEC);
+			//einAussteigen3.write(0);
+			//wait3.notify(150, SC_SEC);
 		}
 	} 
 	
@@ -197,7 +200,7 @@ SC_MODULE(Steuerung){
 			cout << "[" << sc_time_stamp() << "] ";
 			if (faEtage % 10 != 0){
 				// fahrstuhl in ZwischenEtage
-				printf("Fahrstuhl befindet sich in Zwischenetage: %d\n", faEtage);
+				//printf("Fahrstuhl befindet sich in Zwischenetage: %d\n", faEtage);
 			}
 			else {
 				faEtage = faEtage/10;
@@ -213,10 +216,12 @@ SC_MODULE(Steuerung){
 					//prüfe aktuelle Etage
 					open1 = foo[0][faEtage-1];
 					open2 = foo[1][faEtage-1];
-					
+					/*printf("Open1 %s \n", open1 ? "true" : "false");
+					printf("Open2 %s \n", open2 ? "true" : "false");
+					printf("Mode: %d \n", mode);*/
 					if (open1 && mode == 1) foo[0][faEtage - 1] = false; 
 					if (open2 && mode == 2) foo[1][faEtage - 1] = false;
-					if (open1 || open2) openDoor();
+					if ((open1 && mode == 1) || (open2 && mode == 2)) openDoor();
 				}
 				else{
 					if (faModus == 1){
@@ -301,6 +306,7 @@ SC_MODULE(Steuerung){
 
 				printf("Passagier 3 Stock == faEtage: %s", (CalcStock(passagier_wahl[2]) == faEtage) ? "true" : "false");
 				printf(" && einst3 == 0: %s \n", einAussteigen3 == 0 ? "true" : "false");*/
+
 				
 				if ((CalcStock(passagier_wahl[0])) == faEtage && einAussteigen1 == 0 && einsteigen(Richtung_Up(passagier_wahl[0]),faModus)){
 						einAussteigen1.write(1);
@@ -315,16 +321,16 @@ SC_MODULE(Steuerung){
 						//cout << "bla \n";
 				}
 				else if ((passagier_ziel[0] == faEtage) && einAussteigen1 == 1){
-					einAussteigen1.write(-1);
+					einAussteigen1.write(0);
 					//wait1.notify(60,SC_SEC);
 
 				}
 				else if ((passagier_ziel[1] == faEtage) && einAussteigen2 == 1){
-					einAussteigen2.write(-1);
+					einAussteigen2.write(0);
 					//wait2.notify(60,SC_SEC);
 				}
 				else if ((passagier_ziel[2] == faEtage) && einAussteigen3 == 1){
-					einAussteigen3.write(-1);
+					einAussteigen3.write(0);
 					//wait3.notify(60,SC_SEC);
 				}
 				else {
