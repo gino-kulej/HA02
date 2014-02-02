@@ -24,9 +24,10 @@ SC_MODULE(Steuerung){
 	sc_inout<int> fahrstuhl_modus;
 	//sc_inout<int> weiter_fahren;
 	sc_inout<int> einAussteigen1, einAussteigen2, einAussteigen3;
+	sc_inout<int> counter1, counter2, counter3;
 	// [0][..] = down haltestellen [1][..] = up haltestellen
 	bool foo[2][4];
-	sc_event a;//activateSensor;
+	sc_event a,b,wait1,wait2,wait3, no;//activateSensor;
 	bool doorOpen,ziel,idle;
 	int passagier_wahl[3], passagier_ziel[3], alt[3], neu[3], dekode, mode, ein;
 
@@ -42,13 +43,27 @@ SC_MODULE(Steuerung){
 		idle = false;
 
 		SC_THREAD(aktiv);
-		sensitive << tasten_und_ziel_wahl[0].value_changed() << tasten_und_ziel_wahl[1].value_changed() << tasten_und_ziel_wahl[2].value_changed(); //<< b;
+		sensitive << b;
 		SC_THREAD(fahrstuhlPruefen);
 		sensitive << fahrstuhl_etage.value_changed() << a;
 		SC_THREAD(sensor);
 		sensitive << activateSensor;
 		SC_THREAD(setIdle);
 		sensitive << amEnde;
+		SC_THREAD(annehmen1);
+		sensitive << tasten_und_ziel_wahl[0].value_changed();
+		SC_THREAD(annehmen2);
+		sensitive << tasten_und_ziel_wahl[1].value_changed();
+		SC_THREAD(annehmen3);
+		sensitive << tasten_und_ziel_wahl[2].value_changed();
+		SC_METHOD(waiter1);
+		sensitive << wait1;
+		SC_METHOD(waiter2);
+		sensitive << wait2;
+		SC_METHOD(waiter3);
+		sensitive << wait3;
+		//SC_METHOD(notifier);
+		//sensitive << no;
 		//dont_initialize();
 	}
 
@@ -59,7 +74,46 @@ SC_MODULE(Steuerung){
 			a.notify();
 		}
 	}
+
+	void annehmen(int i){
+		alt[i] = neu[i];
+		neu[i] = tasten_und_ziel_wahl[i].read();
+		if (alt[i] != neu[i]) {
+			// Dekodiere Tasten Wahl und Zieletage
+			dekode = neu[i] / 5;
+			passagier_wahl[i] = dekode;
+			passagier_ziel[i] = neu[i] - (dekode * 5);
+			bool nachOben = Richtung_Up(passagier_wahl[i]);
+			cout << "[" << sc_time_stamp() << "] ";
+			printf("Steuerung hat eine Anfrage von Passagier %d erhalten: Taste %d,  Etage %d, NachOben? %d, Zieletage %d, Kodiert %d\n", i + 1, passagier_wahl[i], CalcStock(passagier_wahl[i]), nachOben, passagier_ziel[i], neu[i]);
+			neu[i] = -1;
+			b.notify();
+		}
+	}
+
+	void annehmen1(){
+		while (true){
+			wait();
+			annehmen(0);
+			wait1.notify(150, SC_SEC);
+		}
+	}
 	
+	void annehmen2(){
+		while (true){
+			wait();
+			annehmen(1);
+			wait2.notify(150, SC_SEC);
+		}
+	} 
+
+	void annehmen3(){
+		while (true){
+			wait();
+			annehmen(2);
+			wait3.notify(150, SC_SEC);
+		}
+	} 
 	
 	void aktiv()
 	{
@@ -70,22 +124,24 @@ SC_MODULE(Steuerung){
 			
 			
 			for (int i = 0; i<3; i++) {
-				alt[i] = neu[i];
-				neu[i] = tasten_und_ziel_wahl[i].read();
-				if (alt[i] != neu[i]) {
+				//alt[i] = neu[i];
+				//neu[i] = tasten_und_ziel_wahl[i].read();
+				if (neu[i] == -1) {
 					// Dekodiere Tasten Wahl und Zieletage
-					dekode = neu[i] / 5;
-					passagier_wahl[i] = dekode;
-					passagier_ziel[i] = neu[i] - (dekode*5);
+					//dekode = neu[i] / 5;
+					//passagier_wahl[i] = dekode;
+					//passagier_ziel[i] = neu[i] - (dekode*5);
 
 					bool nachOben = Richtung_Up(passagier_wahl[i]);
 
-					printf("Steuerung hat eine Anfrage von Passagier %d erhalten: Taste %d,  Etage %d, NachOben? %d, Zieletage %d, Kodiert %d\n", i + 1, passagier_wahl[i], CalcStock(passagier_wahl[i]), nachOben, passagier_ziel[i], neu[i]);
+					//printf("Steuerung hat eine Anfrage von Passagier %d erhalten: Taste %d,  Etage %d, NachOben? %d, Zieletage %d, Kodiert %d\n", i + 1, passagier_wahl[i], CalcStock(passagier_wahl[i]), nachOben, passagier_ziel[i], neu[i]);
 
 
 					//mode = calcModus(nachOben, fahrstuhl_etage.read()/10, CalcStock(passagier_wahl[i]));
 
-					
+					/*if (i == 1) wait1.notify();
+					if (i == 2) wait2.notify();
+					if (i == 3) wait3.notify();*/
 
 					if (!nachOben){
 						foo[0][CalcStock(passagier_wahl[i]) - 1] = true;
@@ -118,6 +174,7 @@ SC_MODULE(Steuerung){
 				a.notify();
 				//fahrstuhl_modus.write(mode);
 
+
 			}
 					
 		}
@@ -131,15 +188,10 @@ SC_MODULE(Steuerung){
 		bool open1, open2;
 		while (true){
 			wait();
-			if (leer()){
-				cout << "Alles Fertig!\n";
-				sc_stop();
-			}
 			int faEtage = fahrstuhl_etage.read();
 			int faModus = fahrstuhl_modus.read();
 			if (idle) {
 				faModus = 0;
-				
 				wait(SC_ZERO_TIME);
 			}
 			cout << "[" << sc_time_stamp() << "] ";
@@ -190,7 +242,23 @@ SC_MODULE(Steuerung){
 				wait(doorClosed);
 			}
 
-			weiterFahren.notify();
+			if (!leer()) weiterFahren.notify();
+			else{
+				fahrstuhl_modus.write(0);
+			/*	printf("Array Down: %s %s %s %s \n", foo[0][0] ? "true" : "false", foo[0][1] ? "true" : "false", foo[0][2] ? "true" : "false", foo[0][3] ? "true" : "false");
+				printf("Array Up: %s %s %s %s \n", foo[1][0] ? "true" : "false", foo[1][1] ? "true" : "false", foo[1][2] ? "true" : "false", foo[1][3] ? "true" : "false");
+
+				printf("Passagier 1 Stock == faEtage: %s", (CalcStock(passagier_wahl[0]) == faEtage) ? "true" : "false");
+				printf(" && einst1: %d \n", einAussteigen1.read());
+
+				printf("Passagier 2 Stock == faEtage: %s", (CalcStock(passagier_wahl[1]) == faEtage) ? "true" : "false");
+				printf(" && einst2: %d \n", einAussteigen2.read());
+
+				printf("Passagier 3 Stock == faEtage: %s", (CalcStock(passagier_wahl[2]) == faEtage) ? "true" : "false");
+				printf(" && einst3: %d \n", einAussteigen3.read());*/
+
+				printf("STOPP! Fahrstuhl ist im Modus: 0 \n");
+			}
 			/*w = weiter_fahren;
 			weiter_fahren.write(++w);*/
 		}
@@ -247,13 +315,17 @@ SC_MODULE(Steuerung){
 						//cout << "bla \n";
 				}
 				else if ((passagier_ziel[0] == faEtage) && einAussteigen1 == 1){
-					einAussteigen1.write(0);
+					einAussteigen1.write(-1);
+					//wait1.notify(60,SC_SEC);
+
 				}
 				else if ((passagier_ziel[1] == faEtage) && einAussteigen2 == 1){
-					einAussteigen2.write(0);
+					einAussteigen2.write(-1);
+					//wait2.notify(60,SC_SEC);
 				}
 				else if ((passagier_ziel[2] == faEtage) && einAussteigen3 == 1){
-					einAussteigen3.write(0);
+					einAussteigen3.write(-1);
+					//wait3.notify(60,SC_SEC);
 				}
 				else {
 					wait(3, SC_SEC);
@@ -315,6 +387,25 @@ SC_MODULE(Steuerung){
 			}
 		}
 		return r;
+	}
+
+	void waiter1(){
+		int count1;
+		count1 = counter1.read();
+		counter1.write(++count1);
+		
+	}
+
+	void waiter2(){
+		int count2;
+		count2 = counter2.read();
+		counter2.write(++count2);
+	}
+
+	void waiter3(){
+		int count3;
+		count3 = counter3.read();
+		counter3.write(++count3);
 	}
 	
 };
